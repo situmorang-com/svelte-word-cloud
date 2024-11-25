@@ -14,6 +14,7 @@
 		deleteDoc,
 		getDocs
 	} from 'firebase/firestore';
+	import badWordsData from './badwords.json';
 
 	// Firebase configuration from environment variables
 	const firebaseConfig = {
@@ -68,9 +69,16 @@
 	// Function to add a word to Firestore
 	async function addWord() {
 		if (inputWord.trim() === '' || inputWord.length > 30) return;
-
+		const badWords = ['test', 'badword2', 'badword3']; //
 		// Convert word to lowercase to maintain consistency
 		const wordText = inputWord.toLowerCase();
+		if (badWordsData.badWords.includes(wordText)) {
+			// Play a warning sound
+			const audio = new Audio('/sounds/sorry-words-not-allowed.mp3'); // Replace with actual path to the sound file
+			audio.play();
+			inputWord = '';
+			return;
+		}
 
 		let existingWordId = null;
 		let existingWordSize = 0;
@@ -122,7 +130,7 @@
 		}
 
 		inputWord = '';
-		inputSize = 40;
+		inputSize = parseInt(inputSize);
 	}
 
 	onMount(() => {
@@ -337,7 +345,7 @@
 		placeholder="Enter word"
 		on:keypress={handleKeyPress}
 		maxlength="30"
-		style="border"
+		style="border: 1px solid #d3d3d3;"
 	/>
 	<!-- <input type="number" bind:value={inputSize} min="10" max="200" on:keypress={handleKeyPress} /> -->
 	<button
