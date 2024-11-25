@@ -59,6 +59,7 @@
 			});
 			words.set([]);
 			wordPositions.clear();
+			draw([]); // Ensure the DOM is updated by passing an empty array
 		} catch (e) {
 			console.error('Error clearing words: ', e);
 		}
@@ -152,6 +153,7 @@
 			});
 
 			words.set(wordArray);
+			draw(wordArray); // Ensure the DOM is updated properly after clearing
 		});
 
 		words.subscribe((currentWords) => {
