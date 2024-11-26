@@ -69,7 +69,6 @@
 	// Function to add a word to Firestore
 	async function addWord() {
 		if (inputWord.trim() === '' || inputWord.length > 30) return;
-		const badWords = ['test', 'badword2', 'badword3']; //
 		// Convert word to lowercase to maintain consistency
 		const wordText = inputWord.toLowerCase();
 		if (badWordsData.badWords.includes(wordText)) {
@@ -89,13 +88,13 @@
 			if (wordIndex !== -1) {
 				// Word exists, accumulate size
 				existingWordId = currentWords[wordIndex].id;
-				existingWordSize = currentWords[wordIndex].size + parseInt(inputSize);
+				existingWordSize = Math.min(currentWords[wordIndex].size + parseInt(inputSize), 150); // Cap size at 150px
 				currentWords[wordIndex].size = existingWordSize;
 			} else {
 				// Word does not exist, add it to the store
 				const newWord = {
 					text: wordText,
-					size: parseInt(inputSize),
+					size: Math.min(parseInt(inputSize), 150), // Cap size at 150px
 					x: (Math.random() - 0.5) * 100,
 					y: (Math.random() - 0.5) * 100
 				};
@@ -117,7 +116,7 @@
 			// Add a new word to Firestore
 			const newWord = {
 				text: wordText,
-				size: parseInt(inputSize),
+				size: Math.min(parseInt(inputSize), 150), // Cap size at 150px
 				x: (Math.random() - 0.5) * 100,
 				y: (Math.random() - 0.5) * 100
 			};
@@ -172,12 +171,12 @@
 	});
 
 	function checkOverlap(bbox1, bbox2) {
-		const padding = 10;
+		const padding = 15;
 		return !(
-			bbox1.right + padding < bbox2.left ||
-			bbox1.left - padding > bbox2.right ||
-			bbox1.bottom + padding < bbox2.top ||
-			bbox1.top - padding > bbox2.bottom
+			bbox1.right + padding <= bbox2.left ||
+			bbox1.left - padding >= bbox2.right ||
+			bbox1.bottom + padding <= bbox2.top ||
+			bbox1.top - padding >= bbox2.bottom
 		);
 	}
 
@@ -256,22 +255,16 @@
 						};
 
 						if (checkOverlap(currentBounds, otherBounds)) {
-							const pushX = pos.x - otherPos.x;
-							const pushY = pos.y - otherPos.y;
+							const pushDistance = 10; // Push words apart
+							const dx = pos.x - otherPos.x || Math.random() - 0.5;
+							const dy = pos.y - otherPos.y || Math.random() - 0.5;
+							const distance = Math.sqrt(dx * dx + dy * dy);
 
-							const pushDistance = 5;
-							if (pushX === 0 && pushY === 0) {
-								pos.x += (Math.random() - 0.5) * pushDistance;
-								pos.y += (Math.random() - 0.5) * pushDistance;
-							} else {
-								const distance = Math.sqrt(pushX * pushX + pushY * pushY);
-								const normalizedX = pushX / distance;
-								const normalizedY = pushY / distance;
+							const moveX = (dx / distance) * pushDistance;
+							const moveY = (dy / distance) * pushDistance;
 
-								const force = Math.max(word.size, otherWord.size) / 2;
-								pos.x += normalizedX * force;
-								pos.y += normalizedY * force;
-							}
+							pos.x += moveX;
+							pos.y += moveY;
 
 							pos = keepInBounds(pos, bbox.width, bbox.height);
 							moved = true;
@@ -345,7 +338,7 @@
 		placeholder="Enter word"
 		on:keypress={handleKeyPress}
 		maxlength="30"
-		style="border: 1px solid #d3d3d3;"
+		style="border: 1px solid #d3d3d3; background: rgba(0, 0, 0, 0.5);"
 	/>
 	<!-- <input type="number" bind:value={inputSize} min="10" max="200" on:keypress={handleKeyPress} /> -->
 	<button
