@@ -163,6 +163,44 @@
 			draw(wordArray); // Ensure the DOM is updated properly after clearing
 		});
 
+		// Add resize event listener
+		const handleResize = () => {
+			// Update dimensions
+			width = window.innerWidth;
+			height = window.innerHeight;
+
+			// Update SVG dimensions
+			svg
+				.attr('width', width)
+				.attr('height', height)
+				.attr('transform', `translate(${width / 2}, ${height / 2})`);
+
+			// Recalculate word positions
+			const currentWords = [];
+			words.subscribe((data) => currentWords.push(...data))();
+
+			// Clear word positions and recalculate
+			wordPositions.clear();
+			const recalculatedWords = currentWords.map((word) => {
+				return {
+					...word,
+					x: Math.random() * (width - 100) - width / 2, // Adjust random placement to stay within width
+					y: Math.random() * (height - 100) - height / 2 // Adjust random placement to stay within height
+				};
+			});
+
+			// Update the store and redraw
+			words.set(recalculatedWords);
+			draw(recalculatedWords);
+		};
+
+		window.addEventListener('resize', handleResize);
+
+		// Cleanup event listener on component unmount
+		return () => {
+			window.removeEventListener('resize', handleResize);
+		};
+
 		words.subscribe((currentWords) => {
 			if (currentWords.length > 0) {
 				draw(currentWords);
@@ -171,7 +209,7 @@
 	});
 
 	function checkOverlap(bbox1, bbox2) {
-		const padding = 15;
+		const padding = 10;
 		return !(
 			bbox1.right + padding <= bbox2.left ||
 			bbox1.left - padding >= bbox2.right ||
@@ -183,8 +221,9 @@
 	function keepInBounds(pos, wordWidth, wordHeight) {
 		const halfWidth = wordWidth / 2;
 		const halfHeight = wordHeight / 2;
-		const margin = 20;
+		const margin = 10;
 
+		// Ensure words stay within the bounds of the browser
 		const maxX = width / 2 - halfWidth - margin;
 		const minX = -width / 2 + halfWidth + margin;
 		const maxY = height / 2 - halfHeight - margin;
@@ -201,8 +240,8 @@
 			const remembered = wordPositions.get(d.text);
 			return {
 				...d,
-				x: remembered ? remembered.x : d.x || 0,
-				y: remembered ? remembered.y : d.y || 0
+				x: remembered ? remembered.x : (Math.random() - 0.5) * width,
+				y: remembered ? remembered.y : (Math.random() - 0.5) * height
 			};
 		});
 
@@ -225,7 +264,7 @@
 			let pos = wordPositions.get(word.text) || { x: word.x, y: word.y };
 			let moved = true;
 			let iterations = 0;
-			const maxIterations = 100;
+			const maxIterations = 50;
 
 			while (moved && iterations < maxIterations) {
 				moved = false;
@@ -255,10 +294,10 @@
 						};
 
 						if (checkOverlap(currentBounds, otherBounds)) {
-							const pushDistance = 10; // Push words apart
+							const pushDistance = 15; // Push words apart
 							const dx = pos.x - otherPos.x || Math.random() - 0.5;
 							const dy = pos.y - otherPos.y || Math.random() - 0.5;
-							const distance = Math.sqrt(dx * dx + dy * dy);
+							const distance = Math.sqrt(dx * dx + dy * dy) || 1;
 
 							const moveX = (dx / distance) * pushDistance;
 							const moveY = (dy / distance) * pushDistance;
@@ -338,7 +377,7 @@
 		placeholder="Enter word"
 		on:keypress={handleKeyPress}
 		maxlength="30"
-		style="border: 1px solid #d3d3d3; background: rgba(0, 0, 0, 0.5);"
+		style="border: 1px solid #d3d3d3; background: rgba(255, 255, 255, 0.5); border-radius: 5px;"
 	/>
 	<!-- <input type="number" bind:value={inputSize} min="10" max="200" on:keypress={handleKeyPress} /> -->
 	<button
@@ -353,6 +392,26 @@
 <div id="wordcloud"></div>
 
 <style>
+	@keyframes blink-blue {
+		0% {
+			border-color: lightblue;
+			box-shadow: 0 0 8px lightblue; /* Add a glowing effect */
+		}
+		50% {
+			border-color: darkblue;
+			box-shadow: 0 0 16px darkblue; /* Increase glow intensity */
+		}
+		100% {
+			border-color: lightblue;
+			box-shadow: 0 0 8px lightblue; /* Return to the original glow */
+		}
+	}
+
+	input:focus {
+		outline: none; /* Remove default focus outline */
+		border: 3px solid lightblue; /* Make the border thicker */
+		animation: blink-blue 3s infinite; /* Shorten animation duration */
+	}
 	#wordcloud {
 		border: 1px solid #ccc;
 		width: 100vw;
